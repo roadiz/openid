@@ -14,7 +14,7 @@
         "lcobucci/jwt": "^4.1",
         "roadiz/jwt": "^1.6",
         "roadiz/random": "^1.6",
-        "roadiz/models": "^1.6",
+        "roadiz/models": "^1.6 || dev-develop",
         "guzzlehttp/guzzle": ">=6.3",
         "pimple/pimple": ">=3.3.1",
         "symfony/http-foundation": ">=5.0.7",
