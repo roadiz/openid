@@ -13,15 +13,15 @@
         "php": ">=7.4",
         "lcobucci/jwt": "^4.1",
         "roadiz/jwt": "^1.6",
-        "roadiz/random": "^1.6",
-        "roadiz/models": "^1.6 || dev-develop",
+        "roadiz/random": "^1.7 || dev-main",
+        "roadiz/models": "^1.7 || dev-develop",
         "guzzlehttp/guzzle": ">=6.3",
         "pimple/pimple": ">=3.3.1",
         "symfony/http-foundation": ">=5.0.7",
         "symfony/security": ">=4.4.1",
         "doctrine/cache": ">=1.10",
         "jms/serializer": "^3.11",
-        "symfony/event-dispatcher-contracts": "^1.1.9",
+        "symfony/event-dispatcher-contracts": "^1.1.9 || ^2.4.0",
         "codercat/jwk-to-pem": "^1.0"
     },
     "require-dev": {

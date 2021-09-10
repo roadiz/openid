@@ -111,7 +111,7 @@ class OAuth2AuthenticationListener extends AbstractAuthenticationListener
     {
         if (null !== $request->query->get('error') &&
             null !== $request->query->get('error_description')) {
-            throw new AuthenticationException($request->query->get('error_description'));
+            throw new AuthenticationException((string) $request->query->get('error_description'));
         }
         /*
          * Verify CSRF token passed to OAuth2 Service provider,
@@ -121,7 +121,7 @@ class OAuth2AuthenticationListener extends AbstractAuthenticationListener
         if (null === $request->query->get('state')) {
             throw new AuthenticationException('State is not valid');
         }
-        $state = Query::parse($request->query->get('state'));
+        $state = Query::parse((string) $request->query->get('state'));
         $stateToken = $this->csrfTokenManager->getToken(static::OAUTH_STATE_TOKEN);
 
         if (!isset($state['token']) ||
