@@ -46,7 +46,7 @@ class Discovery extends LazyParameterBag
                     'timeout'  => 2.0,
                 ]);
                 $response = $client->get($this->discoveryUri);
-                $parameters = json_decode($response->getBody()->getContents(), true);
+                $parameters = \json_decode($response->getBody()->getContents(), true);
                 if (null !== $this->cacheProvider) {
                     $this->cacheProvider->save(static::CACHE_KEY, $parameters);
                 }
@@ -94,7 +94,7 @@ class Discovery extends LazyParameterBag
     protected function getJwksData(): ?array
     {
         if (null === $this->jwksData && $this->has('jwks_uri')) {
-            $cacheKey = 'jwks_uri_' . md5($this->get('jwks_uri'));
+            $cacheKey = 'jwks_uri_' . \md5($this->get('jwks_uri'));
             if (null !== $this->cacheProvider && $this->cacheProvider->contains($cacheKey)) {
                 $this->jwksData = $this->cacheProvider->fetch($cacheKey);
             } else {
@@ -103,7 +103,7 @@ class Discovery extends LazyParameterBag
                     'timeout'  => 3.0,
                 ]);
                 $response = $client->get($this->get('jwks_uri'));
-                $this->jwksData = json_decode($response->getBody()->getContents(), true);
+                $this->jwksData = \json_decode($response->getBody()->getContents(), true);
                 if (null !== $this->cacheProvider) {
                     $this->cacheProvider->save($cacheKey, $this->jwksData, 3600);
                 }
