@@ -24,8 +24,8 @@ final class OpenIdServiceProvider implements ServiceProviderInterface
         $container[JwtConfigurationFactory::class] = function (Container $c) {
             return new OpenIdJwtConfigurationFactory(
                 $c[Discovery::class],
-                $c['settingsBag']->get('openid_hd'),
-                $c['settingsBag']->get('oauth_client_id')
+                $c['settingsBag']->get('openid_hd', null),
+                $c['settingsBag']->get('oauth_client_id', null)
             );
         };
 
@@ -33,8 +33,8 @@ final class OpenIdServiceProvider implements ServiceProviderInterface
             return new OAuth2LinkGenerator(
                 $c[Discovery::class],
                 $c['csrfTokenManager'],
-                $c['settingsBag']->get('openid_hd'),
-                $c['settingsBag']->get('oauth_client_id'),
+                $c['settingsBag']->get('openid_hd', null),
+                $c['settingsBag']->get('oauth_client_id', null),
                 explode(' ', $c['settingsBag']->get('openid_scopes', ''))
             );
         };
