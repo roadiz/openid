@@ -35,7 +35,7 @@ final class OpenIdServiceProvider implements ServiceProviderInterface
                 $c['csrfTokenManager'],
                 $c['settingsBag']->get('openid_hd', null),
                 $c['settingsBag']->get('oauth_client_id', null),
-                explode(' ', $c['settingsBag']->get('openid_scopes', ''))
+                explode(' ', $c['settingsBag']->get('openid_scopes', '') ?? '')
             );
         };
 
