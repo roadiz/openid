@@ -15,7 +15,7 @@ class OAuth2LinkGenerator
     protected CsrfTokenManagerInterface $csrfTokenManager;
     private ?string $openIdHostedDomain;
     private ?string $oauthClientId;
-    private ?array $openIdScopes;
+    private array $openIdScopes;
 
     public function __construct(
         ?Discovery $discovery,
@@ -28,7 +28,7 @@ class OAuth2LinkGenerator
         $this->csrfTokenManager = $csrfTokenManager;
         $this->openIdHostedDomain = $openIdHostedDomain;
         $this->oauthClientId = $oauthClientId;
-        $this->openIdScopes = $openIdScopes;
+        $this->openIdScopes = array_filter($openIdScopes ?? []);
     }
 
     /**
@@ -53,7 +53,7 @@ class OAuth2LinkGenerator
     {
         if (null !== $this->discovery &&
             in_array($responseType, $this->discovery->get('response_types_supported', []))) {
-            if (!empty($this->openIdScopes)) {
+            if (count($this->openIdScopes) > 0 && !empty($this->openIdScopes)) {
                 $customScopes = array_intersect(
                     $this->openIdScopes,
                     $this->discovery->get('scopes_supported')
