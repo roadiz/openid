@@ -14,24 +14,24 @@ use Lcobucci\JWT\Validation\Constraint\PermittedFor;
 use RZ\Roadiz\JWT\JwtConfigurationFactory;
 use RZ\Roadiz\JWT\Validation\Constraint\HostedDomain;
 use RZ\Roadiz\JWT\Validation\Constraint\UserInfoEndpoint;
-use Symfony\Component\HttpFoundation\ParameterBag;
 
 final class OpenIdJwtConfigurationFactory implements JwtConfigurationFactory
 {
     private ?Discovery $discovery;
-    private ParameterBag $settingsBag;
     private bool $verifyUserInfo;
+    private ?string $openIdHostedDomain;
+    private ?string $oauthClientId;
 
-    /**
-     * @param Discovery|null $discovery
-     * @param ParameterBag $settingsBag
-     * @param bool $verifyUserInfo
-     */
-    public function __construct(?Discovery $discovery, ParameterBag $settingsBag, bool $verifyUserInfo = false)
-    {
+    public function __construct(
+        ?Discovery $discovery,
+        ?string $openIdHostedDomain,
+        ?string $oauthClientId,
+        bool $verifyUserInfo = false
+    ) {
         $this->discovery = $discovery;
-        $this->settingsBag = $settingsBag;
         $this->verifyUserInfo = $verifyUserInfo;
+        $this->openIdHostedDomain = $openIdHostedDomain;
+        $this->oauthClientId = $oauthClientId;
     }
 
     /**
@@ -39,17 +39,16 @@ final class OpenIdJwtConfigurationFactory implements JwtConfigurationFactory
      */
     protected function getValidationConstraints(): array
     {
-        $hostedDomain = $this->settingsBag->get('openid_hd', false);
         $validators = [
             new LooseValidAt(SystemClock::fromSystemTimezone()),
         ];
 
-        if (false !== $this->settingsBag->get('oauth_client_id', false)) {
-            $validators[] = new PermittedFor(trim((string) $this->settingsBag->get('oauth_client_id')));
+        if (!empty($this->oauthClientId)) {
+            $validators[] = new PermittedFor(trim($this->oauthClientId));
         }
 
-        if (false !== $hostedDomain && !empty(trim((string) $hostedDomain))) {
-            $validators[] = new HostedDomain(trim((string) $hostedDomain));
+        if (!empty($this->openIdHostedDomain)) {
+            $validators[] = new HostedDomain(trim($this->openIdHostedDomain));
         }
 
         if (null !== $this->discovery) {

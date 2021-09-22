@@ -6,7 +6,6 @@ namespace RZ\Roadiz\OpenId;
 use RZ\Roadiz\OpenId\Authentication\OAuth2AuthenticationListener;
 use RZ\Roadiz\OpenId\Exception\DiscoveryNotAvailableException;
 use RZ\Roadiz\Random\TokenGenerator;
-use Symfony\Component\HttpFoundation\ParameterBag;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 
@@ -14,21 +13,22 @@ class OAuth2LinkGenerator
 {
     protected ?Discovery $discovery;
     protected CsrfTokenManagerInterface $csrfTokenManager;
-    protected ParameterBag $settingsBag;
+    private ?string $openIdHostedDomain;
+    private ?string $oauthClientId;
+    private array $openIdScopes;
 
-    /**
-     * @param Discovery|null $discovery
-     * @param CsrfTokenManagerInterface $csrfTokenManager
-     * @param ParameterBag $settingsBag
-     */
     public function __construct(
         ?Discovery $discovery,
         CsrfTokenManagerInterface $csrfTokenManager,
-        ParameterBag $settingsBag
+        ?string $openIdHostedDomain,
+        ?string $oauthClientId,
+        ?array $openIdScopes
     ) {
         $this->discovery = $discovery;
         $this->csrfTokenManager = $csrfTokenManager;
-        $this->settingsBag = $settingsBag;
+        $this->openIdHostedDomain = $openIdHostedDomain;
+        $this->oauthClientId = $oauthClientId;
+        $this->openIdScopes = array_filter($openIdScopes ?? []);
     }
 
     /**
@@ -53,10 +53,9 @@ class OAuth2LinkGenerator
     {
         if (null !== $this->discovery &&
             in_array($responseType, $this->discovery->get('response_types_supported', []))) {
-            $customScopes = $this->settingsBag->get('openid_scopes', null);
-            if (null !== $customScopes && !empty($customScopes)) {
+            if (count($this->openIdScopes) > 0 && !empty($this->openIdScopes)) {
                 $customScopes = array_intersect(
-                    explode(' ', $customScopes),
+                    $this->openIdScopes,
                     $this->discovery->get('scopes_supported')
                 );
             } else {
@@ -65,14 +64,14 @@ class OAuth2LinkGenerator
             $stateToken = $this->csrfTokenManager->getToken(OAuth2AuthenticationListener::OAUTH_STATE_TOKEN);
             return $this->discovery->get('authorization_endpoint') . '?' . http_build_query([
                 'response_type' => 'code',
-                'hd' => $this->settingsBag->get('openid_hd', null),
+                'hd' => $this->openIdHostedDomain,
                 'state' => http_build_query(array_merge($state, [
                     'token' => $stateToken->getValue()
                 ])),
                 'nonce' => (new TokenGenerator())->generateToken(),
                 'login_hint' => $request->get('email', null),
                 'scope' => implode(' ', $customScopes),
-                'client_id' => $this->settingsBag->get('oauth_client_id', null),
+                'client_id' => $this->oauthClientId,
                 'redirect_uri' => $redirectUri,
             ]);
         }

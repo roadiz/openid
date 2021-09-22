@@ -13,10 +13,11 @@ class OpenIdAccountProvider implements UserProviderInterface
 {
     /**
      * @inheritDoc
+     * @param string $username
      */
     public function loadUserByUsername($username)
     {
-        throw new \RuntimeException('Cannot load an OpenId account with its email.');
+        throw new UsernameNotFoundException('Cannot load an OpenId account with its email.');
     }
 
     /**
@@ -36,6 +37,7 @@ class OpenIdAccountProvider implements UserProviderInterface
 
     /**
      * @inheritDoc
+     * @param class-string $class
      */
     public function supportsClass($class)
     {
