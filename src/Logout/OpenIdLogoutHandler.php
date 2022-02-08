@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace RZ\Roadiz\OpenId\Logout;
@@ -31,9 +32,11 @@ class OpenIdLogoutHandler implements LogoutHandlerInterface
      */
     public function logout(Request $request, Response $response, TokenInterface $token)
     {
-        if ($this->discovery->has('revocation_endpoint') &&
+        if (
+            $this->discovery->has('revocation_endpoint') &&
             $token instanceof JwtAccountToken &&
-            null !== $token->getAccessToken()) {
+            null !== $token->getAccessToken()
+        ) {
             try {
                 $tokenToRevoke = $token->getAccessToken();
                 $client = new Client();
@@ -52,9 +55,11 @@ class OpenIdLogoutHandler implements LogoutHandlerInterface
          * If a end_session_endpoint is available
          * just redirect user to it.
          */
-        if ($this->discovery->has('end_session_endpoint') &&
+        if (
+            $this->discovery->has('end_session_endpoint') &&
             $token instanceof JwtAccountToken &&
-            $response instanceof RedirectResponse) {
+            $response instanceof RedirectResponse
+        ) {
             $response->setTargetUrl($this->discovery->get('end_session_endpoint'));
             $response->setContent('Redirecting to ' . $this->discovery->get('end_session_endpoint'));
             $response->headers->set('Location', $this->discovery->get('end_session_endpoint'));

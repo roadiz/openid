@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace RZ\Roadiz\OpenId\Authentication;
@@ -23,6 +24,11 @@ class JwtAccountToken extends AbstractToken
     public function __construct($user, Token $jwt, ?string $accessToken, string $providerKey, array $roles = [])
     {
         parent::__construct($roles);
+
+        if (!($user instanceof UserInterface)) {
+            throw new \InvalidArgumentException('$user must be an instanceof UserInterface');
+        }
+
         $this->setUser($user);
         $this->setAuthenticated(\count($roles) > 0);
         $this->jwt = $jwt;

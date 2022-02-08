@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace RZ\Roadiz\OpenId;
@@ -51,8 +52,10 @@ class OAuth2LinkGenerator
      */
     public function generate(Request $request, string $redirectUri, array $state = [], string $responseType = 'code'): string
     {
-        if (null !== $this->discovery &&
-            in_array($responseType, $this->discovery->get('response_types_supported', []))) {
+        if (
+            null !== $this->discovery &&
+            in_array($responseType, $this->discovery->get('response_types_supported', []))
+        ) {
             if (count($this->openIdScopes) > 0 && !empty($this->openIdScopes)) {
                 $customScopes = array_intersect(
                     $this->openIdScopes,

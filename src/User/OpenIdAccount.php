@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace RZ\Roadiz\OpenId\User;
@@ -124,33 +125,24 @@ class OpenIdAccount implements UserInterface, EquatableInterface
     /**
      * @inheritDoc
      */
-    public function getRoles()
+    public function getRoles(): array
     {
         return $this->roles;
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function getPassword()
+    public function getPassword(): string
     {
         return '';
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function getSalt()
+    public function getSalt(): string
     {
         return '';
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function getUsername()
+    public function getUsername(): string
     {
-        return $this->email;
+        return $this->email ?? '';
     }
 
     /**
@@ -274,7 +266,12 @@ class OpenIdAccount implements UserInterface, EquatableInterface
         return $this->issuer;
     }
 
-    public function isEqualTo(UserInterface $user)
+    public function getUserIdentifier(): string
+    {
+        return $this->getEmail() ?? '';
+    }
+
+    public function isEqualTo(UserInterface $user): bool
     {
         if (!$user instanceof OpenIdAccount) {
             return false;

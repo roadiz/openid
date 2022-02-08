@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace RZ\Roadiz\OpenId;
@@ -67,13 +68,17 @@ final class OpenIdJwtConfigurationFactory implements JwtConfigurationFactory
         /*
          * Verify JWT signature if asymmetric crypto is used and if PHP gmp extension is loaded.
          */
-        if (null !== $this->discovery &&
+        if (
+            null !== $this->discovery &&
             $this->discovery->canVerifySignature() &&
-            null !== $pems = $this->discovery->getPems()) {
-            if (in_array(
-                'RS256',
-                $this->discovery->get('id_token_signing_alg_values_supported', [])
-            ) && isset($pems[0])) {
+            null !== $pems = $this->discovery->getPems()
+        ) {
+            if (
+                in_array(
+                    'RS256',
+                    $this->discovery->get('id_token_signing_alg_values_supported', [])
+                ) && isset($pems[0])
+            ) {
                 $configuration = Configuration::forAsymmetricSigner(
                     new Sha256(),
                     InMemory::plainText($pems[0]),

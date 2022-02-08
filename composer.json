@@ -18,9 +18,9 @@
         "guzzlehttp/guzzle": ">=6.3",
         "pimple/pimple": ">=3.3.1",
         "symfony/http-foundation": ">=5.0.7",
-        "symfony/security-core": ">=4.4 || >=5.3",
-        "symfony/security-http": ">=4.4 || >=5.3",
-        "symfony/security-csrf": ">=4.4 || >=5.3",
+        "symfony/security-core": "5.4.*",
+        "symfony/security-http": "5.4.*",
+        "symfony/security-csrf": "5.4.*",
         "doctrine/cache": ">=1.10",
         "jms/serializer": "^3.11",
         "symfony/event-dispatcher-contracts": "^1.1.9 || ^2.4.0",
@@ -33,6 +33,11 @@
     "autoload": {
         "psr-4": {
             "RZ\\Roadiz\\OpenId\\": "src/"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "composer/package-versions-deprecated": true
         }
     }
 }

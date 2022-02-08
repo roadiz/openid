@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace RZ\Roadiz\OpenId\Authentication\Provider;
@@ -8,7 +9,7 @@ use Symfony\Component\HttpFoundation\ParameterBag;
 
 class SettingsRoleStrategy implements JwtRoleStrategy
 {
-    const SETTING_NAME = 'openid_default_roles';
+    public const SETTING_NAME = 'openid_default_roles';
 
     protected ParameterBag $settingsBag;
 

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace RZ\Roadiz\OpenId\Authentication;
@@ -24,7 +25,7 @@ use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 class OAuth2AuthenticationListener extends AbstractAuthenticationListener
 {
-    const OAUTH_STATE_TOKEN = 'openid_state';
+    public const OAUTH_STATE_TOKEN = 'openid_state';
 
     protected CsrfTokenManagerInterface $csrfTokenManager;
     protected Client $client;
@@ -109,8 +110,10 @@ class OAuth2AuthenticationListener extends AbstractAuthenticationListener
      */
     protected function attemptAuthentication(Request $request)
     {
-        if (null !== $request->query->get('error') &&
-            null !== $request->query->get('error_description')) {
+        if (
+            null !== $request->query->get('error') &&
+            null !== $request->query->get('error_description')
+        ) {
             throw new AuthenticationException((string) $request->query->get('error_description'));
         }
         /*
@@ -124,17 +127,21 @@ class OAuth2AuthenticationListener extends AbstractAuthenticationListener
         $state = Query::parse((string) $request->query->get('state'));
         $stateToken = $this->csrfTokenManager->getToken(static::OAUTH_STATE_TOKEN);
 
-        if (!isset($state['token']) ||
+        if (
+            !isset($state['token']) ||
             $stateToken->getValue() !== $state['token'] ||
-            !$this->csrfTokenManager->isTokenValid($stateToken)) {
+            !$this->csrfTokenManager->isTokenValid($stateToken)
+        ) {
             throw new AuthenticationException('State token is not valid');
         }
 
         /*
          * Fetch _target_path parameter from OAuth2 state
          */
-        if (isset($this->options['target_path_parameter']) &&
-            isset($state[$this->options['target_path_parameter']])) {
+        if (
+            isset($this->options['target_path_parameter']) &&
+            isset($state[$this->options['target_path_parameter']])
+        ) {
             $request->query->set($this->options['target_path_parameter'], $state[$this->options['target_path_parameter']]);
         }
 
@@ -169,8 +176,10 @@ class OAuth2AuthenticationListener extends AbstractAuthenticationListener
             );
         }
 
-        if (!$jwt->claims()->has($this->getUsernameClaimName()) ||
-            empty($jwt->claims()->get($this->getUsernameClaimName()))) {
+        if (
+            !$jwt->claims()->has($this->getUsernameClaimName()) ||
+            empty($jwt->claims()->get($this->getUsernameClaimName()))
+        ) {
             throw new AuthenticationException(
                 'JWT does not contain “' . $this->getUsernameClaimName() . '” claim.'
             );

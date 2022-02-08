@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace RZ\Roadiz\OpenId;
@@ -18,7 +19,7 @@ use RZ\Roadiz\Bag\LazyParameterBag;
  */
 class Discovery extends LazyParameterBag
 {
-    const CACHE_KEY = Discovery::class . '_parameters';
+    public const CACHE_KEY = Discovery::class . '_parameters';
 
     protected string $discoveryUri;
     protected ?CacheProvider $cacheProvider;
