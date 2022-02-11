@@ -19,7 +19,7 @@ use RZ\Roadiz\Bag\LazyParameterBag;
  */
 class Discovery extends LazyParameterBag
 {
-    public const CACHE_KEY = Discovery::class . '_parameters';
+    public const CACHE_KEY = 'rz_openid_discovery_parameters';
 
     protected string $discoveryUri;
     protected CacheItemPoolInterface $cacheAdapter;
