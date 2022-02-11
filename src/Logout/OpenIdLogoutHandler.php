@@ -14,6 +14,9 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Http\Logout\LogoutHandlerInterface;
 
+/**
+ * @deprecated Use the new authenticator system instead
+ */
 class OpenIdLogoutHandler implements LogoutHandlerInterface
 {
     protected Discovery $discovery;

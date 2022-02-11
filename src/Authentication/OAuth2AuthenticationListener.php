@@ -23,6 +23,9 @@ use Symfony\Component\Security\Http\HttpUtils;
 use Symfony\Component\Security\Http\Session\SessionAuthenticationStrategyInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
+/**
+ * @deprecated Use the new authenticator system instead
+ */
 class OAuth2AuthenticationListener extends AbstractAuthenticationListener
 {
     public const OAUTH_STATE_TOKEN = 'openid_state';

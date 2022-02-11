@@ -7,10 +7,10 @@ namespace RZ\Roadiz\OpenId;
 use CoderCat\JWKToPEM\Exception\Base64DecodeException;
 use CoderCat\JWKToPEM\Exception\JWKConverterException;
 use CoderCat\JWKToPEM\JWKConverter;
-use Doctrine\Common\Cache\CacheProvider;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Exception\RequestException;
+use Psr\Cache\CacheItemPoolInterface;
 use RZ\Roadiz\Bag\LazyParameterBag;
 
 /**
@@ -22,24 +22,25 @@ class Discovery extends LazyParameterBag
     public const CACHE_KEY = Discovery::class . '_parameters';
 
     protected string $discoveryUri;
-    protected ?CacheProvider $cacheProvider;
+    protected CacheItemPoolInterface $cacheAdapter;
     protected ?array $jwksData = null;
 
     /**
-     * @param string             $discoveryUri
-     * @param CacheProvider|null $cacheProvider
+     * @param string  $discoveryUri
+     * @param CacheItemPoolInterface $cacheAdapter
      */
-    public function __construct(string $discoveryUri, ?CacheProvider $cacheProvider = null)
+    public function __construct(string $discoveryUri, CacheItemPoolInterface $cacheAdapter)
     {
         parent::__construct();
         $this->discoveryUri = $discoveryUri;
-        $this->cacheProvider = $cacheProvider;
+        $this->cacheAdapter = $cacheAdapter;
     }
 
     protected function populateParameters(): void
     {
-        if (null !== $this->cacheProvider && $this->cacheProvider->contains(static::CACHE_KEY)) {
-            $parameters = $this->cacheProvider->fetch(static::CACHE_KEY);
+        $cacheItem = $this->cacheAdapter->getItem(static::CACHE_KEY);
+        if ($cacheItem->isHit()) {
+            $parameters = $cacheItem->get();
         } else {
             try {
                 $client = new Client([
@@ -48,9 +49,8 @@ class Discovery extends LazyParameterBag
                 ]);
                 $response = $client->get($this->discoveryUri);
                 $parameters = \json_decode($response->getBody()->getContents(), true);
-                if (null !== $this->cacheProvider) {
-                    $this->cacheProvider->save(static::CACHE_KEY, $parameters);
-                }
+                $cacheItem->set($cacheItem);
+                $this->cacheAdapter->save($cacheItem);
             } catch (RequestException $exception) {
                 return;
             }
@@ -95,9 +95,9 @@ class Discovery extends LazyParameterBag
     protected function getJwksData(): ?array
     {
         if (null === $this->jwksData && $this->has('jwks_uri')) {
-            $cacheKey = 'jwks_uri_' . \md5($this->get('jwks_uri'));
-            if (null !== $this->cacheProvider && $this->cacheProvider->contains($cacheKey)) {
-                $this->jwksData = $this->cacheProvider->fetch($cacheKey);
+            $cacheItem = $this->cacheAdapter->getItem('jwks_uri_' . \md5($this->get('jwks_uri')));
+            if ($cacheItem->isHit()) {
+                $this->jwksData = $cacheItem->get();
             } else {
                 $client = new Client([
                     // You can set any number of default request options.
@@ -105,9 +105,8 @@ class Discovery extends LazyParameterBag
                 ]);
                 $response = $client->get($this->get('jwks_uri'));
                 $this->jwksData = \json_decode($response->getBody()->getContents(), true);
-                if (null !== $this->cacheProvider) {
-                    $this->cacheProvider->save($cacheKey, $this->jwksData, 3600);
-                }
+                $cacheItem->set($this->jwksData)->expiresAfter(3600);
+                $this->cacheAdapter->save($cacheItem);
             }
         }
         return $this->jwksData;

@@ -14,6 +14,9 @@ use Symfony\Component\Security\Core\Authentication\Provider\AuthenticationProvid
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Exception\AuthenticationException;
 
+/**
+ * @deprecated Use the new authenticator system instead
+ */
 class OAuth2AuthenticationProvider implements AuthenticationProviderInterface
 {
     protected string $providerKey;

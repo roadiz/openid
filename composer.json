@@ -21,7 +21,7 @@
         "symfony/security-core": "5.4.*",
         "symfony/security-http": "5.4.*",
         "symfony/security-csrf": "5.4.*",
-        "doctrine/cache": ">=1.10",
+        "psr/cache": ">=1.0.1",
         "jms/serializer": "^3.11",
         "symfony/event-dispatcher-contracts": "^1.1.9 || ^2.4.0",
         "codercat/jwk-to-pem": "^1.0"

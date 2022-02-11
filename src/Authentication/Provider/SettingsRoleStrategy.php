@@ -23,7 +23,7 @@ class SettingsRoleStrategy implements JwtRoleStrategy
 
     public function supports(JwtAccountToken $token): bool
     {
-        return null !== $this->settingsBag && !empty($this->settingsBag->get(static::SETTING_NAME));
+        return !empty($this->settingsBag->get(static::SETTING_NAME));
     }
 
     public function getRoles(JwtAccountToken $token): ?array
