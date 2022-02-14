@@ -49,7 +49,7 @@ class Discovery extends LazyParameterBag
                 ]);
                 $response = $client->get($this->discoveryUri);
                 $parameters = \json_decode($response->getBody()->getContents(), true);
-                $cacheItem->set($cacheItem);
+                $cacheItem->set($parameters);
                 $this->cacheAdapter->save($cacheItem);
             } catch (RequestException $exception) {
                 return;
