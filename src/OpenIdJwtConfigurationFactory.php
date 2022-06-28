@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace RZ\Roadiz\OpenId;
@@ -52,9 +53,13 @@ final class OpenIdJwtConfigurationFactory implements JwtConfigurationFactory
         }
 
         if (null !== $this->discovery) {
-            $validators[] = new IssuedBy($this->discovery->get('issuer'));
-            if ($this->verifyUserInfo && !empty($this->discovery->get('userinfo_endpoint'))) {
-                $validators[] = new UserInfoEndpoint(trim((string) $this->discovery->get('userinfo_endpoint')));
+            $issuer = $this->discovery->get('issuer');
+            $userinfoEndpoint = $this->discovery->get('userinfo_endpoint');
+            if (is_string($issuer) && !empty($issuer)) {
+                $validators[] = new IssuedBy($issuer);
+            }
+            if ($this->verifyUserInfo && is_string($userinfoEndpoint) && !empty($userinfoEndpoint)) {
+                $validators[] = new UserInfoEndpoint(trim($userinfoEndpoint));
             }
         }
 
@@ -67,13 +72,19 @@ final class OpenIdJwtConfigurationFactory implements JwtConfigurationFactory
         /*
          * Verify JWT signature if asymmetric crypto is used and if PHP gmp extension is loaded.
          */
-        if (null !== $this->discovery &&
+        if (
+            null !== $this->discovery &&
             $this->discovery->canVerifySignature() &&
-            null !== $pems = $this->discovery->getPems()) {
-            if (in_array(
-                'RS256',
-                $this->discovery->get('id_token_signing_alg_values_supported', [])
-            ) && isset($pems[0])) {
+            null !== $pems = $this->discovery->getPems()
+        ) {
+            /** @var array $signingAlgValuesSupported */
+            $signingAlgValuesSupported = $this->discovery->get('id_token_signing_alg_values_supported', []);
+            if (
+                in_array(
+                    'RS256',
+                    $signingAlgValuesSupported
+                ) && isset($pems[0])
+            ) {
                 $configuration = Configuration::forAsymmetricSigner(
                     new Sha256(),
                     InMemory::plainText($pems[0]),

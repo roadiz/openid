@@ -1,14 +1,14 @@
 <?php
+
 declare(strict_types=1);
 
 namespace RZ\Roadiz\OpenId\Authentication\Provider;
 
-use RZ\Roadiz\OpenId\Authentication\JwtAccountToken;
 use Symfony\Component\HttpFoundation\ParameterBag;
 
 class SettingsRoleStrategy implements JwtRoleStrategy
 {
-    const SETTING_NAME = 'openid_default_roles';
+    public const SETTING_NAME = 'openid_default_roles';
 
     protected ParameterBag $settingsBag;
 
@@ -20,15 +20,19 @@ class SettingsRoleStrategy implements JwtRoleStrategy
         $this->settingsBag = $settingsBag;
     }
 
-    public function supports(JwtAccountToken $token): bool
+    public function supports(): bool
     {
-        return null !== $this->settingsBag && !empty($this->settingsBag->get(static::SETTING_NAME));
+        return !empty($this->settingsBag->get(static::SETTING_NAME));
     }
 
-    public function getRoles(JwtAccountToken $token): ?array
+    public function getRoles(): ?array
     {
+        $settings = $this->settingsBag->get(static::SETTING_NAME);
+        if (!is_string($settings)) {
+            return null;
+        }
         return array_map(function ($role) {
             return trim($role);
-        }, explode(',', $this->settingsBag->get(static::SETTING_NAME)));
+        }, explode(',', $settings));
     }
 }
