@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace RZ\Roadiz\OpenId\Authentication\Provider;
 
-use RZ\Roadiz\OpenId\Authentication\JwtAccountToken;
-
 final class ChainJwtRoleStrategy implements JwtRoleStrategy
 {
     /**
@@ -26,24 +24,24 @@ final class ChainJwtRoleStrategy implements JwtRoleStrategy
         }
     }
 
-    public function supports(JwtAccountToken $token): bool
+    public function supports(): bool
     {
         /** @var JwtRoleStrategy $strategy */
         foreach ($this->strategies as $strategy) {
-            if ($strategy->supports($token)) {
+            if ($strategy->supports()) {
                 return true;
             }
         }
         return false;
     }
 
-    public function getRoles(JwtAccountToken $token): ?array
+    public function getRoles(): ?array
     {
         $roles = [];
         /** @var JwtRoleStrategy $strategy */
         foreach ($this->strategies as $strategy) {
-            if ($strategy->supports($token)) {
-                $roles = array_merge($roles, $strategy->getRoles($token) ?? []);
+            if ($strategy->supports()) {
+                $roles = array_merge($roles, $strategy->getRoles() ?? []);
             }
         }
         return !empty($roles) ? array_unique($roles) : null;

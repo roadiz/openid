@@ -14,6 +14,7 @@ class OpenIdAccountProvider implements UserProviderInterface
 {
     /**
      * @param string $username
+     * @deprecated since Symfony 5.3, use loadUserByIdentifier() instead
      */
     public function loadUserByUsername($username)
     {
@@ -44,7 +45,7 @@ class OpenIdAccountProvider implements UserProviderInterface
      * @inheritDoc
      * @param class-string $class
      */
-    public function supportsClass($class)
+    public function supportsClass(string $class)
     {
         return $class === OpenIdAccount::class;
     }

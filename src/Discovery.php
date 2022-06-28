@@ -40,6 +40,7 @@ class Discovery extends LazyParameterBag
     {
         $cacheItem = $this->cacheAdapter->getItem(static::CACHE_KEY);
         if ($cacheItem->isHit()) {
+            /** @var array $parameters */
             $parameters = $cacheItem->get();
         } else {
             try {
@@ -48,6 +49,7 @@ class Discovery extends LazyParameterBag
                     'timeout'  => 2.0,
                 ]);
                 $response = $client->get($this->discoveryUri);
+                /** @var array $parameters */
                 $parameters = \json_decode($response->getBody()->getContents(), true);
                 $cacheItem->set($parameters);
                 $this->cacheAdapter->save($cacheItem);
@@ -95,16 +97,30 @@ class Discovery extends LazyParameterBag
     protected function getJwksData(): ?array
     {
         if (null === $this->jwksData && $this->has('jwks_uri')) {
-            $cacheItem = $this->cacheAdapter->getItem('jwks_uri_' . \md5($this->get('jwks_uri')));
+            $jwksUri = $this->get('jwks_uri');
+            if (!is_string($jwksUri) || empty($jwksUri)) {
+                return null;
+            }
+            $cacheItem = $this->cacheAdapter->getItem('jwks_uri_' . \md5($jwksUri));
             if ($cacheItem->isHit()) {
-                $this->jwksData = $cacheItem->get();
+                $data = $cacheItem->get();
+                if (is_array($data)) {
+                    $this->jwksData = $data;
+                } else {
+                    $this->jwksData = null;
+                }
             } else {
                 $client = new Client([
                     // You can set any number of default request options.
                     'timeout'  => 3.0,
                 ]);
-                $response = $client->get($this->get('jwks_uri'));
-                $this->jwksData = \json_decode($response->getBody()->getContents(), true);
+                $response = $client->get($jwksUri);
+                $data = \json_decode($response->getBody()->getContents(), true);
+                if (is_array($data)) {
+                    $this->jwksData = $data;
+                } else {
+                    $this->jwksData = null;
+                }
                 $cacheItem->set($this->jwksData)->expiresAfter(3600);
                 $this->cacheAdapter->save($cacheItem);
             }

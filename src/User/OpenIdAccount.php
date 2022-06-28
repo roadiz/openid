@@ -7,7 +7,7 @@ namespace RZ\Roadiz\OpenId\User;
 use Lcobucci\JWT\Token;
 use Symfony\Component\Security\Core\User\EquatableInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
-use JMS\Serializer\Annotation as Serializer;
+use Symfony\Component\Serializer\Annotation as SymfonySerializer;
 
 /**
  * @see https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims
@@ -16,78 +16,78 @@ class OpenIdAccount implements UserInterface, EquatableInterface
 {
     /**
      * @var array<string>
-     * @Serializer\Groups({"user"})
+     * @SymfonySerializer\Groups({"user"})
      */
-    protected $roles;
+    protected array $roles;
     /**
      * @var string|null
-     * @Serializer\Groups({"user"})
+     * @SymfonySerializer\Groups({"user"})
      */
-    protected $issuer;
+    protected ?string $issuer = null;
     /**
      * @var string
-     * @Serializer\Groups({"user"})
+     * @SymfonySerializer\Groups({"user"})
      */
-    protected $email;
+    protected string $email;
     /**
      * @var string|null
-     * @Serializer\Groups({"user"})
+     * @SymfonySerializer\Groups({"user"})
      */
-    protected $name;
+    protected ?string $name = null;
     /**
      * @var string|null
-     * @Serializer\Groups({"user"})
+     * @SymfonySerializer\Groups({"user"})
      */
-    protected $nickname;
+    protected ?string $nickname = null;
     /**
      * @var string|null
-     * @Serializer\Groups({"user"})
+     * @SymfonySerializer\Groups({"user"})
      */
-    protected $website;
+    protected ?string $website = null;
     /**
      * @var string|null
-     * @Serializer\Groups({"user"})
+     * @SymfonySerializer\Groups({"user"})
      */
-    protected $locale;
+    protected ?string $locale = null;
     /**
      * @var string|null
-     * @Serializer\Groups({"user"})
+     * @SymfonySerializer\Groups({"user"})
      */
-    protected $phoneNumber;
+    protected ?string $phoneNumber = null;
     /**
      * @var array|null
-     * @Serializer\Groups({"user"})
+     * @SymfonySerializer\Groups({"user"})
      */
-    protected $address;
+    protected ?array $address = null;
     /**
      * @var string|null
-     * @Serializer\Groups({"user"})
+     * @SymfonySerializer\Groups({"user"})
      */
-    protected $familyName;
+    protected ?string $familyName = null;
     /**
      * @var string|null
-     * @Serializer\Groups({"user"})
+     * @SymfonySerializer\Groups({"user"})
      */
-    protected $middleName;
+    protected ?string $middleName = null;
     /**
      * @var string|null
-     * @Serializer\Groups({"user"})
+     * @SymfonySerializer\Groups({"user"})
      */
-    protected $givenName;
+    protected ?string $givenName = null;
     /**
      * @var string|null
-     * @Serializer\Groups({"user"})
+     * @SymfonySerializer\Groups({"user"})
      */
-    protected $picture;
+    protected ?string $picture = null;
     /**
      * @var string|null
-     * @Serializer\Groups({"user"})
+     * @SymfonySerializer\Groups({"user"})
      */
-    protected $profile;
+    protected ?string $profile = null;
     /**
      * @var Token
      */
-    protected $jwtToken;
+    protected Token $jwtToken;
 
     /**
      * @param string $email
@@ -109,17 +109,32 @@ class OpenIdAccount implements UserInterface, EquatableInterface
          * https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims
          */
         $claims = $jwtToken->claims();
-        $this->name = $claims->has('name') ? (string) $claims->get('name') : null;
-        $this->issuer = $claims->has('iss') ? (string) $claims->get('iss') : null;
-        $this->givenName = $claims->has('given_name') ? (string) $claims->get('given_name') : null;
-        $this->familyName = $claims->has('family_name') ? (string) $claims->get('family_name') : null;
-        $this->middleName = $claims->has('middle_name') ? (string) $claims->get('middle_name') : null;
-        $this->nickname = $claims->has('nickname') ? (string) $claims->get('nickname') : null;
-        $this->profile = $claims->has('profile') ? (string) $claims->get('profile') : null;
-        $this->picture = $claims->has('picture') ? (string) $claims->get('picture') : null;
-        $this->locale = $claims->has('locale') ? (string) $claims->get('locale') : null;
-        $this->phoneNumber = $claims->has('phone_number') ? (string) $claims->get('phone_number') : null;
-        $this->address = $claims->has('address') ? $claims->get('address') : null;
+        $this->name = $this->getStringClaim($claims, 'name');
+        $this->issuer = $this->getStringClaim($claims, 'iss');
+        $this->givenName = $this->getStringClaim($claims, 'given_name');
+        $this->familyName = $this->getStringClaim($claims, 'family_name');
+        $this->middleName = $this->getStringClaim($claims, 'middle_name');
+        $this->nickname = $this->getStringClaim($claims, 'nickname');
+        $this->profile = $this->getStringClaim($claims, 'profile');
+        $this->picture = $this->getStringClaim($claims, 'picture');
+        $this->locale = $this->getStringClaim($claims, 'locale');
+        $this->phoneNumber = $this->getStringClaim($claims, 'phone_number');
+        $this->address = $this->getArrayClaim($claims, 'address');
+    }
+
+    private function getStringClaim(Token\DataSet $claims, string $claimName): ?string
+    {
+        if ($claims->has($claimName) && is_string($claims->get($claimName))) {
+            return $claims->get($claimName);
+        }
+        return null;
+    }
+    private function getArrayClaim(Token\DataSet $claims, string $claimName): ?array
+    {
+        if ($claims->has($claimName) && is_array($claims->get($claimName))) {
+            return $claims->get($claimName);
+        }
+        return null;
     }
 
     /**
