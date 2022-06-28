@@ -195,9 +195,7 @@ final class OpenIdAuthenticator extends AbstractAuthenticator
                     try {
                         $configuration->validator()->assert($jwt, ...$constraints);
                     } catch (RequiredConstraintsViolated $e) {
-                        throw new AuthenticationException(
-                            $e->getMessage()
-                        );
+                        throw new AuthenticationException($e->getMessage(), 0, $e);
                     }
                     return true;
                 },
