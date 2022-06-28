@@ -11,6 +11,7 @@ use Lcobucci\JWT\Token\Plain;
 use Lcobucci\JWT\Validation\RequiredConstraintsViolated;
 use RZ\Roadiz\OpenId\Authentication\Provider\JwtRoleStrategy;
 use RZ\Roadiz\OpenId\Discovery;
+use RZ\Roadiz\OpenId\Exception\OpenIdAuthenticationException;
 use RZ\Roadiz\OpenId\OpenIdJwtConfigurationFactory;
 use RZ\Roadiz\OpenId\User\OpenIdAccount;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -103,7 +104,7 @@ final class OpenIdAuthenticator extends AbstractAuthenticator
         }
 
         if (null === $this->discovery) {
-            throw new AuthenticationException('OpenId discovery service is unavailable, check your configuration.');
+            throw new OpenIdAuthenticationException('OpenId discovery service is unavailable, check your configuration.');
         }
 
         /*
@@ -112,7 +113,7 @@ final class OpenIdAuthenticator extends AbstractAuthenticator
          * optional data
          */
         if (null === $request->query->get('state')) {
-            throw new AuthenticationException('State is not valid');
+            throw new OpenIdAuthenticationException('State is not valid');
         }
         $state = Query::parse((string) $request->query->get('state'));
 
@@ -128,7 +129,7 @@ final class OpenIdAuthenticator extends AbstractAuthenticator
         try {
             $tokenEndpoint = $this->discovery->get('token_endpoint');
             if (!\is_string($tokenEndpoint) || empty($tokenEndpoint)) {
-                throw new AuthenticationException('Discovery does not provide a valid token_endpoint.');
+                throw new OpenIdAuthenticationException('Discovery does not provide a valid token_endpoint.');
             }
             $response = $this->client->post($tokenEndpoint, [
                 'form_params' => [
@@ -142,7 +143,7 @@ final class OpenIdAuthenticator extends AbstractAuthenticator
             /** @var array $jsonResponse */
             $jsonResponse = \json_decode($response->getBody()->getContents(), true);
         } catch (GuzzleException $e) {
-            throw new AuthenticationException(
+            throw new OpenIdAuthenticationException(
                 'Cannot contact Identity provider to issue authorization_code.' . $e->getMessage(),
                 $e->getCode(),
                 $e
@@ -150,7 +151,7 @@ final class OpenIdAuthenticator extends AbstractAuthenticator
         }
 
         if (empty($jsonResponse['id_token'])) {
-            throw new AuthenticationException('JWT is missing from response.');
+            throw new OpenIdAuthenticationException('JWT is missing from response.');
         }
 
         $jwt = $this->jwtConfigurationFactory
@@ -159,20 +160,20 @@ final class OpenIdAuthenticator extends AbstractAuthenticator
             ->parse((string) $jsonResponse['id_token']);
 
         if (!($jwt instanceof Plain)) {
-            throw new AuthenticationException(
+            throw new OpenIdAuthenticationException(
                 'JWT token must be instance of ' . Plain::class
             );
         }
 
         if (!$jwt->claims()->has($this->usernameClaim)) {
-            throw new AuthenticationException(
+            throw new OpenIdAuthenticationException(
                 'JWT does not contain “' . $this->usernameClaim . '” claim.'
             );
         }
 
         $username = $jwt->claims()->get($this->usernameClaim);
         if (!\is_string($username) || empty($username)) {
-            throw new AuthenticationException(
+            throw new OpenIdAuthenticationException(
                 'JWT “' . $this->usernameClaim . '” claim is not valid.'
             );
         }
@@ -195,7 +196,7 @@ final class OpenIdAuthenticator extends AbstractAuthenticator
                     try {
                         $configuration->validator()->assert($jwt, ...$constraints);
                     } catch (RequiredConstraintsViolated $e) {
-                        throw new AuthenticationException($e->getMessage(), 0, $e);
+                        throw new OpenIdAuthenticationException($e->getMessage(), 0, $e);
                     }
                     return true;
                 },
