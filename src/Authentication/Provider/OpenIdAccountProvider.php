@@ -29,7 +29,7 @@ class OpenIdAccountProvider implements UserProviderInterface
     /**
      * @inheritDoc
      */
-    public function refreshUser(UserInterface $user)
+    public function refreshUser(UserInterface $user): UserInterface
     {
         if ($user instanceof OpenIdAccount) {
             if ($user->getJwtToken()->isExpired(new \DateTime('now'))) {
@@ -45,7 +45,7 @@ class OpenIdAccountProvider implements UserProviderInterface
      * @inheritDoc
      * @param class-string $class
      */
-    public function supportsClass(string $class)
+    public function supportsClass(string $class): bool
     {
         return $class === OpenIdAccount::class;
     }
