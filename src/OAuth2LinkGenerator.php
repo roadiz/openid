@@ -43,16 +43,13 @@ class OAuth2LinkGenerator
         return null !== $this->discovery;
     }
 
-    /**
-     * @param Request $request
-     * @param string  $redirectUri
-     * @param array   $state
-     * @param string  $responseType
-     *
-     * @return string
-     */
-    public function generate(Request $request, string $redirectUri, array $state = [], string $responseType = 'code'): string
-    {
+    public function generate(
+        Request $request,
+        string $redirectUri,
+        array $state = [],
+        string $responseType = 'code',
+        bool $forceSsl = true
+    ): string {
         if (null === $this->discovery) {
             throw new DiscoveryNotAvailableException(
                 'OpenID discovery is not well configured'
@@ -64,6 +61,13 @@ class OAuth2LinkGenerator
             throw new DiscoveryNotAvailableException(
                 'OpenID response_type is not supported by your identity provider'
             );
+        }
+
+        /*
+         * Redirect URI should always use SSL
+         */
+        if ($forceSsl && str_starts_with($redirectUri, 'http://')) {
+            $redirectUri = str_replace('http://', 'https://', $redirectUri);
         }
 
         /** @var array $supportedScopes */
