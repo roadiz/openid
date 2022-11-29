@@ -1,3 +1,9 @@
+## 2.0.3 (2022-11-29)
+
+### Features
+
+* Always force SSL OAuth2 link generation ([25a42e1](https://github.com/roadiz/openid/commit/25a42e1693aa6ae3e580c5773c644211d0cc3b28))
+
 ## 2.0.2 (2022-10-07)
 
 ### Bug Fixes
