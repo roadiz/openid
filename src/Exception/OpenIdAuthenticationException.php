@@ -6,7 +6,7 @@ namespace RZ\Roadiz\OpenId\Exception;
 
 use Symfony\Component\Security\Core\Exception\AuthenticationException;
 
-class OpenIdAuthenticationException extends AuthenticationException
+final class OpenIdAuthenticationException extends AuthenticationException
 {
     /**
      * Message key to be used by the translation component.

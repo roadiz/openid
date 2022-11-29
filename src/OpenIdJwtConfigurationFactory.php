@@ -83,7 +83,8 @@ final class OpenIdJwtConfigurationFactory implements JwtConfigurationFactory
                 in_array(
                     'RS256',
                     $signingAlgValuesSupported
-                ) && isset($pems[0])
+                ) &&
+                !empty($pems[0])
             ) {
                 $configuration = Configuration::forAsymmetricSigner(
                     new Sha256(),
