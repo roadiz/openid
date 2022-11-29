@@ -1,3 +1,9 @@
+## 2.0.4 (2022-11-29)
+
+### Bug Fixes
+
+* Force SSL redirect link in OpenIdAuthenticator too ([fce48e8](https://github.com/roadiz/openid/commit/fce48e86de209db5339806d4fa5059a825fe6152))
+
 ## 2.0.3 (2022-11-29)
 
 ### Features

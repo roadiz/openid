@@ -11,7 +11,9 @@ use Lcobucci\JWT\Token\Plain;
 use Lcobucci\JWT\Validation\RequiredConstraintsViolated;
 use RZ\Roadiz\OpenId\Authentication\Provider\JwtRoleStrategy;
 use RZ\Roadiz\OpenId\Discovery;
+use RZ\Roadiz\OpenId\Exception\DiscoveryNotAvailableException;
 use RZ\Roadiz\OpenId\Exception\OpenIdAuthenticationException;
+use RZ\Roadiz\OpenId\Exception\OpenIdConfigurationException;
 use RZ\Roadiz\OpenId\OpenIdJwtConfigurationFactory;
 use RZ\Roadiz\OpenId\User\OpenIdAccount;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -46,6 +48,7 @@ final class OpenIdAuthenticator extends AbstractAuthenticator
     private string $usernameClaim;
     private string $targetPathParameter;
     private array $defaultRoles;
+    private bool $forceSsl;
 
     public function __construct(
         HttpUtils $httpUtils,
@@ -59,7 +62,8 @@ final class OpenIdAuthenticator extends AbstractAuthenticator
         ?string $oauthClientSecret,
         string $usernameClaim = 'email',
         string $targetPathParameter = '_target_path',
-        array $defaultRoles = []
+        array $defaultRoles = [],
+        bool $forceSsl = true
     ) {
         $this->httpUtils = $httpUtils;
         $this->discovery = $discovery;
@@ -77,6 +81,7 @@ final class OpenIdAuthenticator extends AbstractAuthenticator
         $this->defaultRoute = $defaultRoute;
         $this->urlGenerator = $urlGenerator;
         $this->jwtConfigurationFactory = $jwtConfigurationFactory;
+        $this->forceSsl = $forceSsl;
     }
 
     /**
@@ -104,7 +109,7 @@ final class OpenIdAuthenticator extends AbstractAuthenticator
         }
 
         if (null === $this->discovery) {
-            throw new OpenIdAuthenticationException('OpenId discovery service is unavailable, check your configuration.');
+            throw new DiscoveryNotAvailableException('OpenId discovery service is unavailable, check your configuration.');
         }
 
         /*
@@ -128,15 +133,24 @@ final class OpenIdAuthenticator extends AbstractAuthenticator
 
         try {
             $tokenEndpoint = $this->discovery->get('token_endpoint');
+            $redirectUri = $request->getSchemeAndHttpHost() . $request->getBaseUrl() . $request->getPathInfo();
+
+            /*
+             * Redirect URI should always use SSL
+             */
+            if ($this->forceSsl && str_starts_with($redirectUri, 'http://')) {
+                $redirectUri = str_replace('http://', 'https://', $redirectUri);
+            }
+
             if (!\is_string($tokenEndpoint) || empty($tokenEndpoint)) {
-                throw new OpenIdAuthenticationException('Discovery does not provide a valid token_endpoint.');
+                throw new OpenIdConfigurationException('Discovery does not provide a valid token_endpoint.');
             }
             $response = $this->client->post($tokenEndpoint, [
                 'form_params' => [
                     'code' => $request->query->get('code'),
                     'client_id' => $this->oauthClientId ?? '',
                     'client_secret' => $this->oauthClientSecret ?? '',
-                    'redirect_uri' => $request->getSchemeAndHttpHost() . $request->getBaseUrl() . $request->getPathInfo(),
+                    'redirect_uri' => $redirectUri,
                     'grant_type' => 'authorization_code'
                 ]
             ]);

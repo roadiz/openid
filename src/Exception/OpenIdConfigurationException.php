@@ -6,14 +6,14 @@ namespace RZ\Roadiz\OpenId\Exception;
 
 use Throwable;
 
-final class DiscoveryNotAvailableException extends \RuntimeException
+final class OpenIdConfigurationException extends \RuntimeException
 {
     /**
      * @param string $message
      * @param int $code
      * @param Throwable|null $previous
      */
-    public function __construct($message = 'OpenID discovery is not configured', $code = 0, Throwable $previous = null)
+    public function __construct($message = 'OpenID configuration is not valid', $code = 0, Throwable $previous = null)
     {
         parent::__construct($message, $code, $previous);
     }
