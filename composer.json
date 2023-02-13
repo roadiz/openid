@@ -6,16 +6,18 @@
     "authors": [
         {
             "name": "Ambroise Maupate",
-            "email": "ambroise@roadiz.io"
+            "email": "ambroise@roadiz.io",
+            "homepage": "https://www.roadiz.io",
+            "role": "Lead developer"
         }
     ],
     "require": {
         "php": ">=8.0",
         "ext-json": "*",
         "lcobucci/jwt": "^4.1",
-        "roadiz/jwt": "~2.1.0 || dev-develop",
-        "roadiz/random": "~2.1.0 || dev-develop",
-        "roadiz/models": "~2.1.0 || dev-develop",
+        "roadiz/jwt": "2.1-dev",
+        "roadiz/random": "2.1-dev",
+        "roadiz/models": "2.1-dev",
         "guzzlehttp/guzzle": "^7.2.0",
         "symfony/http-foundation": "5.4.*",
         "symfony/security-core": "5.4.*",
