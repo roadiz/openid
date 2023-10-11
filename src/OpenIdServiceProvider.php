@@ -50,10 +50,8 @@ final class OpenIdServiceProvider implements ServiceProviderInterface
         };
 
         $container[OAuth2AuthenticationProvider::class] = function (Container $c) {
-            /** @var JwtConfigurationFactory $factory */
-            $factory = $c[JwtConfigurationFactory::class];
             return new OAuth2AuthenticationProvider(
-                $factory->create(),
+                $c[JwtConfigurationFactory::class],
                 $c[JwtRoleStrategy::class],
                 'roadiz_domain',
                 [

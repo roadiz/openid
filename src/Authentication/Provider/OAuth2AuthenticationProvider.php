@@ -3,10 +3,10 @@ declare(strict_types=1);
 
 namespace RZ\Roadiz\OpenId\Authentication\Provider;
 
-use Lcobucci\JWT\Configuration;
 use Lcobucci\JWT\Token;
 use Lcobucci\JWT\Token\Plain;
 use Lcobucci\JWT\Validation\RequiredConstraintsViolated;
+use RZ\Roadiz\JWT\JwtConfigurationFactory;
 use RZ\Roadiz\OpenId\Authentication\JwtAccountToken;
 use RZ\Roadiz\OpenId\User\OpenIdAccount;
 use Symfony\Component\Security\Core\Authentication\Provider\AuthenticationProviderInterface;
@@ -22,17 +22,17 @@ class OAuth2AuthenticationProvider implements AuthenticationProviderInterface
      */
     protected array $defaultRoles;
     protected JwtRoleStrategy $roleStrategy;
-    protected Configuration $jwtConfiguration;
+    protected JwtConfigurationFactory $jwtConfigurationFactory;
 
     /**
-     * @param Configuration $jwtConfiguration
+     * @param JwtConfigurationFactory $jwtConfigurationFactory
      * @param JwtRoleStrategy $roleStrategy
      * @param string $providerKey
      * @param array $defaultRoles
      * @param bool $hideUserNotFoundExceptions
      */
     public function __construct(
-        Configuration $jwtConfiguration,
+        JwtConfigurationFactory $jwtConfigurationFactory,
         JwtRoleStrategy $roleStrategy,
         string $providerKey,
         array $defaultRoles = ['ROLE_USER'],
@@ -42,7 +42,7 @@ class OAuth2AuthenticationProvider implements AuthenticationProviderInterface
         $this->hideUserNotFoundExceptions = $hideUserNotFoundExceptions;
         $this->defaultRoles = $defaultRoles;
         $this->roleStrategy = $roleStrategy;
-        $this->jwtConfiguration = $jwtConfiguration;
+        $this->jwtConfigurationFactory = $jwtConfigurationFactory;
     }
 
     /**
@@ -55,7 +55,8 @@ class OAuth2AuthenticationProvider implements AuthenticationProviderInterface
         }
         /** @var Token $jwt */
         $jwt = $token->getCredentials();
-        $constraints = $this->jwtConfiguration->validationConstraints();
+        $jwtConfiguration = $this->jwtConfigurationFactory->create();
+        $constraints = $jwtConfiguration->validationConstraints();
 
         if (!($jwt instanceof Plain)) {
             throw new AuthenticationException(
@@ -64,7 +65,7 @@ class OAuth2AuthenticationProvider implements AuthenticationProviderInterface
         }
 
         try {
-            $this->jwtConfiguration->validator()->assert($jwt, ...$constraints);
+            $jwtConfiguration->validator()->assert($jwt, ...$constraints);
         } catch (RequiredConstraintsViolated $e) {
             throw new AuthenticationException($e->getMessage());
         }

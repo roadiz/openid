@@ -38,7 +38,7 @@ class OAuth2LinkGenerator
      */
     public function isSupported(Request $request): bool
     {
-        return null !== $this->discovery;
+        return null !== $this->discovery && $this->discovery->isValid();
     }
 
     /**

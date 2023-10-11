@@ -98,6 +98,7 @@ class OAuth2AuthenticationListener extends AbstractAuthenticationListener
     public function supports(Request $request): ?bool
     {
         return $this->requiresAuthentication($request) &&
+            $this->discovery->isValid() &&
             $request->query->has('state') &&
             ($request->query->has('code') || $request->query->has('error')) &&
             isset($this->options['check_path']) &&

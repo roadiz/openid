@@ -51,7 +51,7 @@ final class OpenIdJwtConfigurationFactory implements JwtConfigurationFactory
             $validators[] = new HostedDomain(trim($this->openIdHostedDomain));
         }
 
-        if (null !== $this->discovery) {
+        if (null !== $this->discovery && $this->discovery->isValid()) {
             $validators[] = new IssuedBy($this->discovery->get('issuer'));
             if ($this->verifyUserInfo && !empty($this->discovery->get('userinfo_endpoint'))) {
                 $validators[] = new UserInfoEndpoint(trim((string) $this->discovery->get('userinfo_endpoint')));
@@ -73,7 +73,7 @@ final class OpenIdJwtConfigurationFactory implements JwtConfigurationFactory
             if (in_array(
                 'RS256',
                 $this->discovery->get('id_token_signing_alg_values_supported', [])
-            ) && isset($pems[0])) {
+            ) && !empty($pems[0])) {
                 $configuration = Configuration::forAsymmetricSigner(
                     new Sha256(),
                     InMemory::plainText($pems[0]),
