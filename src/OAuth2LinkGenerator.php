@@ -12,16 +12,24 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 class OAuth2LinkGenerator
 {
     public const OAUTH_STATE_TOKEN = 'openid_state';
+
+    protected ?Discovery $discovery;
+    protected CsrfTokenManagerInterface $csrfTokenManager;
+    private ?string $openIdHostedDomain;
+    private ?string $oauthClientId;
     private array $openIdScopes;
 
     public function __construct(
-        protected readonly ?Discovery $discovery,
-        protected readonly CsrfTokenManagerInterface $csrfTokenManager,
-        protected readonly ?string $openIdHostedDomain,
-        protected readonly ?string $oauthClientId,
-        ?array $openIdScopes,
-        protected readonly bool $forceSslOnRedirectUri
+        ?Discovery $discovery,
+        CsrfTokenManagerInterface $csrfTokenManager,
+        ?string $openIdHostedDomain,
+        ?string $oauthClientId,
+        ?array $openIdScopes
     ) {
+        $this->discovery = $discovery;
+        $this->csrfTokenManager = $csrfTokenManager;
+        $this->openIdHostedDomain = $openIdHostedDomain;
+        $this->oauthClientId = $oauthClientId;
         $this->openIdScopes = array_filter($openIdScopes ?? []);
     }
 
@@ -39,7 +47,8 @@ class OAuth2LinkGenerator
         Request $request,
         string $redirectUri,
         array $state = [],
-        string $responseType = 'code'
+        string $responseType = 'code',
+        bool $forceSsl = true
     ): string {
         if (null === $this->discovery) {
             throw new DiscoveryNotAvailableException(
@@ -57,7 +66,7 @@ class OAuth2LinkGenerator
         /*
          * Redirect URI should always use SSL
          */
-        if ($this->forceSslOnRedirectUri && str_starts_with($redirectUri, 'http://')) {
+        if ($forceSsl && str_starts_with($redirectUri, 'http://')) {
             $redirectUri = str_replace('http://', 'https://', $redirectUri);
         }
 
@@ -74,7 +83,7 @@ class OAuth2LinkGenerator
         }
         $stateToken = $this->csrfTokenManager->getToken(static::OAUTH_STATE_TOKEN);
         return $this->discovery->get('authorization_endpoint') . '?' . http_build_query([
-            'response_type' => $responseType,
+            'response_type' => 'code',
             'hd' => $this->openIdHostedDomain,
             'state' => http_build_query(array_merge($state, [
                 'token' => $stateToken->getValue()
