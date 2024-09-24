@@ -16,7 +16,7 @@ class OpenIdAccountProvider implements UserProviderInterface
      * @param string $username
      * @deprecated since Symfony 5.3, use loadUserByIdentifier() instead
      */
-    public function loadUserByUsername(string $username): UserInterface
+    public function loadUserByUsername($username)
     {
         throw new UserNotFoundException('Cannot load an OpenId account with its email.');
     }
