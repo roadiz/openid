@@ -18,12 +18,21 @@ use RZ\Roadiz\JWT\Validation\Constraint\UserInfoEndpoint;
 
 final class OpenIdJwtConfigurationFactory implements JwtConfigurationFactory
 {
+    private ?Discovery $discovery;
+    private bool $verifyUserInfo;
+    private ?string $openIdHostedDomain;
+    private ?string $oauthClientId;
+
     public function __construct(
-        private readonly ?Discovery $discovery,
-        private readonly ?string $openIdHostedDomain,
-        private readonly ?string $oauthClientId,
-        private readonly bool $verifyUserInfo
+        ?Discovery $discovery,
+        ?string $openIdHostedDomain,
+        ?string $oauthClientId,
+        bool $verifyUserInfo = false
     ) {
+        $this->discovery = $discovery;
+        $this->verifyUserInfo = $verifyUserInfo;
+        $this->openIdHostedDomain = $openIdHostedDomain;
+        $this->oauthClientId = $oauthClientId;
     }
 
     /**
