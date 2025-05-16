@@ -15,17 +15,24 @@ use Lcobucci\JWT\Validation\Constraint\PermittedFor;
 use RZ\Roadiz\JWT\JwtConfigurationFactory;
 use RZ\Roadiz\JWT\Validation\Constraint\HostedDomain;
 use RZ\Roadiz\JWT\Validation\Constraint\UserInfoEndpoint;
-use Symfony\Contracts\HttpClient\HttpClientInterface;
 
-final readonly class OpenIdJwtConfigurationFactory implements JwtConfigurationFactory
+final class OpenIdJwtConfigurationFactory implements JwtConfigurationFactory
 {
+    private ?Discovery $discovery;
+    private bool $verifyUserInfo;
+    private ?string $openIdHostedDomain;
+    private ?string $oauthClientId;
+
     public function __construct(
-        private ?Discovery $discovery,
-        private HttpClientInterface $client,
-        private ?string $openIdHostedDomain,
-        private ?string $oauthClientId,
-        private bool $verifyUserInfo,
+        ?Discovery $discovery,
+        ?string $openIdHostedDomain,
+        ?string $oauthClientId,
+        bool $verifyUserInfo = false
     ) {
+        $this->discovery = $discovery;
+        $this->verifyUserInfo = $verifyUserInfo;
+        $this->openIdHostedDomain = $openIdHostedDomain;
+        $this->oauthClientId = $oauthClientId;
     }
 
     /**
@@ -37,7 +44,7 @@ final readonly class OpenIdJwtConfigurationFactory implements JwtConfigurationFa
             new LooseValidAt(SystemClock::fromSystemTimezone()),
         ];
 
-        if (\is_string($this->oauthClientId) && !empty(trim($this->oauthClientId))) {
+        if (!empty($this->oauthClientId)) {
             $validators[] = new PermittedFor(trim($this->oauthClientId));
         }
 
@@ -52,22 +59,23 @@ final readonly class OpenIdJwtConfigurationFactory implements JwtConfigurationFa
                 $validators[] = new IssuedBy($issuer);
             }
             if ($this->verifyUserInfo && is_string($userinfoEndpoint) && !empty($userinfoEndpoint)) {
-                $validators[] = new UserInfoEndpoint(trim($userinfoEndpoint), $this->client);
+                $validators[] = new UserInfoEndpoint(trim($userinfoEndpoint));
             }
         }
 
         return $validators;
     }
 
-    public function create(): ?Configuration
+    public function create(): Configuration
     {
+        $configuration = Configuration::forUnsecuredSigner();
         /*
          * Verify JWT signature if asymmetric crypto is used and if PHP gmp extension is loaded.
          */
         if (
-            null !== $this->discovery
-            && $this->discovery->canVerifySignature()
-            && null !== $pems = $this->discovery->getPems()
+            null !== $this->discovery &&
+            $this->discovery->canVerifySignature() &&
+            null !== $pems = $this->discovery->getPems()
         ) {
             /** @var array $signingAlgValuesSupported */
             $signingAlgValuesSupported = $this->discovery->get('id_token_signing_alg_values_supported', []);
@@ -75,20 +83,18 @@ final readonly class OpenIdJwtConfigurationFactory implements JwtConfigurationFa
                 in_array(
                     'RS256',
                     $signingAlgValuesSupported
-                )
-                && !empty($pems[0])
+                ) &&
+                !empty($pems[0])
             ) {
                 $configuration = Configuration::forAsymmetricSigner(
                     new Sha256(),
                     InMemory::plainText($pems[0]),
                     InMemory::plainText($pems[0])
                 );
-                $configuration->setValidationConstraints(...$this->getValidationConstraints());
-
-                return $configuration;
             }
         }
 
-        return null;
+        $configuration->setValidationConstraints(...$this->getValidationConstraints());
+        return $configuration;
     }
 }

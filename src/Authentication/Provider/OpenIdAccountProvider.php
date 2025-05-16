@@ -13,9 +13,10 @@ use Symfony\Component\Security\Core\User\UserProviderInterface;
 class OpenIdAccountProvider implements UserProviderInterface
 {
     /**
+     * @param string $username
      * @deprecated since Symfony 5.3, use loadUserByIdentifier() instead
      */
-    public function loadUserByUsername(string $username): UserInterface
+    public function loadUserByUsername($username)
     {
         throw new UserNotFoundException('Cannot load an OpenId account with its email.');
     }
@@ -25,13 +26,15 @@ class OpenIdAccountProvider implements UserProviderInterface
         throw new UserNotFoundException('Cannot load an OpenId account with its email.');
     }
 
+    /**
+     * @inheritDoc
+     */
     public function refreshUser(UserInterface $user): UserInterface
     {
         if ($user instanceof OpenIdAccount) {
             if ($user->getJwtToken()->isExpired(new \DateTime('now'))) {
                 throw new UserNotFoundException('OpenId token has expired, please authenticate again…');
             }
-
             return $user;
         }
 
@@ -39,10 +42,11 @@ class OpenIdAccountProvider implements UserProviderInterface
     }
 
     /**
+     * @inheritDoc
      * @param class-string $class
      */
     public function supportsClass(string $class): bool
     {
-        return OpenIdAccount::class === $class;
+        return $class === OpenIdAccount::class;
     }
 }
