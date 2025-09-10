@@ -52,30 +52,34 @@ final class OpenIdAuthenticator extends AbstractAuthenticator
         private readonly bool $requiresLocalUsers,
         private readonly string $usernameClaim = 'email',
         private readonly string $targetPathParameter = '_target_path',
-        private readonly array $defaultRoles = [],
+        private readonly array $defaultRoles = []
     ) {
         $this->client = $client->withOptions([
             // You can set any number of default request options.
-            'timeout' => 2.0,
+            'timeout'  => 2.0,
         ]);
     }
 
-    #[\Override]
+    /**
+     * @inheritDoc
+     */
     public function supports(Request $request): ?bool
     {
-        return null !== $this->discovery
-            && $this->discovery->isValid()
-            && $this->httpUtils->checkRequestPath($request, $this->returnPath)
-            && $request->query->has('state')
-            && ($request->query->has('code') || $request->query->has('error'));
+        return null !== $this->discovery &&
+            $this->discovery->isValid() &&
+            $this->httpUtils->checkRequestPath($request, $this->returnPath) &&
+            $request->query->has('state') &&
+            ($request->query->has('code') || $request->query->has('error'));
     }
 
-    #[\Override]
+    /**
+     * @inheritDoc
+     */
     public function authenticate(Request $request): Passport
     {
         if (
-            null !== $request->query->get('error')
-            && null !== $request->query->get('error_description')
+            null !== $request->query->get('error') &&
+            null !== $request->query->get('error_description')
         ) {
             throw new AuthenticationException((string) $request->query->get('error_description'));
         }
@@ -106,7 +110,7 @@ final class OpenIdAuthenticator extends AbstractAuthenticator
 
         try {
             $tokenEndpoint = $this->discovery->get('token_endpoint');
-            $redirectUri = $request->getSchemeAndHttpHost().$request->getBaseUrl().$request->getPathInfo();
+            $redirectUri = $request->getSchemeAndHttpHost() . $request->getBaseUrl() . $request->getPathInfo();
 
             /*
              * Redirect URI should always use SSL
@@ -124,8 +128,8 @@ final class OpenIdAuthenticator extends AbstractAuthenticator
                     'client_id' => $this->oauthClientId ?? '',
                     'client_secret' => $this->oauthClientSecret ?? '',
                     'redirect_uri' => $redirectUri,
-                    'grant_type' => 'authorization_code',
-                ],
+                    'grant_type' => 'authorization_code'
+                ]
             ]);
             /** @var array $jsonResponse */
             $jsonResponse = \json_decode(json: $response->getContent(), associative: true, flags: JSON_THROW_ON_ERROR);
@@ -135,38 +139,45 @@ final class OpenIdAuthenticator extends AbstractAuthenticator
             $errorTitle = $jsonResponse['error'] ?? $e->getMessage();
             $errorDescription = $jsonResponse['error_description'] ?? '';
 
-            throw new OpenIdAuthenticationException($errorTitle.': '.$errorDescription, $e->getCode(), $e);
+            throw new OpenIdAuthenticationException(
+                $errorTitle . ': ' . $errorDescription,
+                $e->getCode(),
+                $e
+            );
         } catch (ExceptionInterface $e) {
-            throw new OpenIdAuthenticationException($e->getMessage(), $e->getCode(), $e);
+            throw new OpenIdAuthenticationException(
+                $e->getMessage(),
+                $e->getCode(),
+                $e
+            );
         }
 
-        if (!\is_string($jsonResponse['id_token']) || empty($jsonResponse['id_token'])) {
+        if (empty($jsonResponse['id_token'])) {
             throw new OpenIdAuthenticationException('JWT is missing from response.');
         }
 
-        if (!\is_string($this->usernameClaim) || empty($this->usernameClaim)) {
-            throw new OpenIdAuthenticationException('Username claim is not a valid string.');
-        }
-
-        $configuration = $this->jwtConfigurationFactory->create();
-
-        if (null === $configuration) {
-            throw new OpenIdAuthenticationException('No JWT configuration available.');
-        }
-
-        $jwt = $configuration->parser()->parse($jsonResponse['id_token']);
+        $jwt = $this->jwtConfigurationFactory
+            ->create()
+            ->parser()
+            ->parse((string) $jsonResponse['id_token']);
 
         if (!($jwt instanceof Plain)) {
-            throw new OpenIdAuthenticationException('JWT token must be instance of '.Plain::class);
+            throw new OpenIdAuthenticationException(
+                'JWT token must be instance of ' . Plain::class
+            );
         }
 
         if (!$jwt->claims()->has($this->usernameClaim)) {
-            throw new OpenIdAuthenticationException('JWT does not contain “'.$this->usernameClaim.'” claim.');
+            throw new OpenIdAuthenticationException(
+                'JWT does not contain “' . $this->usernameClaim . '” claim.'
+            );
         }
 
         $username = $jwt->claims()->get($this->usernameClaim);
         if (!\is_string($username) || empty($username)) {
-            throw new OpenIdAuthenticationException('JWT “'.$this->usernameClaim.'” claim is not valid.');
+            throw new OpenIdAuthenticationException(
+                'JWT “' . $this->usernameClaim . '” claim is not valid.'
+            );
         }
 
         /*
@@ -175,9 +186,6 @@ final class OpenIdAuthenticator extends AbstractAuthenticator
         $customCredentials = new CustomCredentials(
             function (Plain $jwt) {
                 $configuration = $this->jwtConfigurationFactory->create();
-                if (null === $configuration) {
-                    throw new OpenIdAuthenticationException('No JWT configuration available.');
-                }
                 $constraints = $configuration->validationConstraints();
 
                 try {
@@ -185,7 +193,6 @@ final class OpenIdAuthenticator extends AbstractAuthenticator
                 } catch (RequiredConstraintsViolated $e) {
                     throw new OpenIdAuthenticationException($e->getMessage(), 0, $e);
                 }
-
                 return true;
             },
             $jwt
@@ -203,13 +210,14 @@ final class OpenIdAuthenticator extends AbstractAuthenticator
             );
         }
         $passport = new Passport(
-            new UserBadge($username, fn () =>
+            new UserBadge($username, function () use ($jwt, $username) {
                 /*
                  * Load user from Identity provider, create a virtual user
                  * with roles configured in config/packages/roadiz_rozier.yaml
                  * and need to validate JWT token.
                  */
-                $this->loadUser($jwt->claims()->all(), $username, $jwt)),
+                return $this->loadUser($jwt->claims()->all(), $username, $jwt);
+            }),
             $customCredentials
         );
         $passport->setAttribute('jwt', $jwt);
@@ -224,7 +232,6 @@ final class OpenIdAuthenticator extends AbstractAuthenticator
         if ($this->roleStrategy->supports()) {
             $roles = array_merge($roles, $this->roleStrategy->getRoles() ?? []);
         }
-
         return new OpenIdAccount(
             $identity,
             array_unique($roles),
@@ -232,7 +239,9 @@ final class OpenIdAuthenticator extends AbstractAuthenticator
         );
     }
 
-    #[\Override]
+    /**
+     * @inheritDoc
+     */
     public function onAuthenticationSuccess(Request $request, TokenInterface $token, string $firewallName): ?Response
     {
         if ($targetPath = $this->getTargetPath($request->getSession(), $firewallName)) {
@@ -242,7 +251,9 @@ final class OpenIdAuthenticator extends AbstractAuthenticator
         return new RedirectResponse($this->urlGenerator->generate($this->defaultRoute));
     }
 
-    #[\Override]
+    /**
+     * @inheritDoc
+     */
     public function onAuthenticationFailure(Request $request, AuthenticationException $exception): ?Response
     {
         if ($request->hasSession()) {

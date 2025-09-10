@@ -4,21 +4,20 @@ declare(strict_types=1);
 
 namespace RZ\Roadiz\OpenId\Authentication\Provider;
 
-final readonly class ChainJwtRoleStrategy implements JwtRoleStrategy
+final class ChainJwtRoleStrategy implements JwtRoleStrategy
 {
     /**
      * @param array<JwtRoleStrategy> $strategies
      */
-    public function __construct(private array $strategies)
+    public function __construct(private readonly array $strategies)
     {
         foreach ($this->strategies as $strategy) {
             if (!($strategy instanceof JwtRoleStrategy)) {
-                throw new \InvalidArgumentException('Strategy must implement '.JwtRoleStrategy::class);
+                throw new \InvalidArgumentException('Strategy must implement ' . JwtRoleStrategy::class);
             }
         }
     }
 
-    #[\Override]
     public function supports(): bool
     {
         foreach ($this->strategies as $strategy) {
@@ -26,11 +25,9 @@ final readonly class ChainJwtRoleStrategy implements JwtRoleStrategy
                 return true;
             }
         }
-
         return false;
     }
 
-    #[\Override]
     public function getRoles(): ?array
     {
         $roles = [];
@@ -39,7 +36,6 @@ final readonly class ChainJwtRoleStrategy implements JwtRoleStrategy
                 $roles = array_merge($roles, $strategy->getRoles() ?? []);
             }
         }
-
         return !empty($roles) ? array_unique($roles) : null;
     }
 }

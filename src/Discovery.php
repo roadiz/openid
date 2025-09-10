@@ -19,6 +19,7 @@ use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 /**
+ * @package RZ\Roadiz\OpenId
  * @see https://accounts.google.com/.well-known/openid-configuration
  */
 class Discovery extends LazyParameterBag
@@ -40,7 +41,6 @@ class Discovery extends LazyParameterBag
         return !empty($this->discoveryUri) && filter_var($this->discoveryUri, FILTER_VALIDATE_URL);
     }
 
-    #[\Override]
     protected function populateParameters(): void
     {
         $cacheItem = $this->cacheAdapter->getItem(static::CACHE_KEY);
@@ -57,9 +57,11 @@ class Discovery extends LazyParameterBag
                 $parameters = \json_decode(json: $response->getContent(), associative: true, flags: JSON_THROW_ON_ERROR);
                 $cacheItem->set($parameters);
                 $this->cacheAdapter->save($cacheItem);
-            } catch (ExceptionInterface|\JsonException $exception) {
-                $this->logger->warning('Cannot fetch OpenID discovery parameters: '.$exception->getMessage());
-
+            } catch (ExceptionInterface $exception) {
+                $this->logger->warning('Cannot fetch OpenID discovery parameters: ' . $exception->getMessage());
+                return;
+            } catch (\JsonException $exception) {
+                $this->logger->warning('Cannot fetch OpenID discovery parameters: ' . $exception->getMessage());
                 return;
             }
         }
@@ -71,6 +73,9 @@ class Discovery extends LazyParameterBag
         $this->ready = true;
     }
 
+    /**
+     * @return bool
+     */
     public function canVerifySignature(): bool
     {
         return $this->isValid() && $this->has('jwks_uri');
@@ -78,7 +83,6 @@ class Discovery extends LazyParameterBag
 
     /**
      * @return array<string>|null
-     *
      * @throws Base64DecodeException
      * @throws ClientExceptionInterface
      * @throws InvalidArgumentException
@@ -87,7 +91,6 @@ class Discovery extends LazyParameterBag
      * @throws ServerExceptionInterface
      * @throws TransportExceptionInterface
      * @throws \JsonException
-     *
      * @see https://auth0.com/docs/tokens/json-web-tokens/json-web-key-sets
      */
     public function getPems(): ?array
@@ -95,14 +98,13 @@ class Discovery extends LazyParameterBag
         $jwksData = $this->getJwksData();
         if (null !== $jwksData && isset($jwksData['keys'])) {
             $converter = new JWKConverter();
-
             return $converter->multipleToPEM($jwksData['keys']);
         }
-
         return null;
     }
 
     /**
+     * @return array|null
      * @throws ClientExceptionInterface
      * @throws InvalidArgumentException
      * @throws RedirectionExceptionInterface
@@ -117,7 +119,7 @@ class Discovery extends LazyParameterBag
             if (!is_string($jwksUri) || empty($jwksUri)) {
                 return null;
             }
-            $cacheItem = $this->cacheAdapter->getItem('jwks_uri_'.\md5($jwksUri));
+            $cacheItem = $this->cacheAdapter->getItem('jwks_uri_' . \md5($jwksUri));
             if ($cacheItem->isHit()) {
                 $data = $cacheItem->get();
                 if (is_array($data)) {
@@ -140,7 +142,6 @@ class Discovery extends LazyParameterBag
                 $this->cacheAdapter->save($cacheItem);
             }
         }
-
         return $this->jwksData;
     }
 }
