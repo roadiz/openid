@@ -12,7 +12,7 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 class OAuth2LinkGenerator
 {
     public const OAUTH_STATE_TOKEN = 'openid_state';
-    private readonly array $openIdScopes;
+    private array $openIdScopes;
 
     public function __construct(
         protected readonly ?Discovery $discovery,
