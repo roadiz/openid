@@ -20,6 +20,8 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Exception\AuthenticationException;
 use Symfony\Component\Security\Core\User\UserInterface;
+use Symfony\Component\Security\Csrf\CsrfToken;
+use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Symfony\Component\Security\Http\Authenticator\AbstractAuthenticator;
 use Symfony\Component\Security\Http\Authenticator\Passport\Badge\UserBadge;
 use Symfony\Component\Security\Http\Authenticator\Passport\Credentials\CustomCredentials;
@@ -43,6 +45,7 @@ final class OpenIdAuthenticator extends AbstractAuthenticator
         private readonly JwtRoleStrategy $roleStrategy,
         private readonly OpenIdJwtConfigurationFactory $jwtConfigurationFactory,
         private readonly UrlGeneratorInterface $urlGenerator,
+        private readonly CsrfTokenManagerInterface $csrfTokenManager,
         HttpClientInterface $client,
         private readonly string $returnPath,
         private readonly string $defaultRoute,
@@ -60,7 +63,8 @@ final class OpenIdAuthenticator extends AbstractAuthenticator
         ]);
     }
 
-    public function supports(Request $request): ?bool
+    #[\Override]
+    public function supports(Request $request): bool
     {
         return null !== $this->discovery
             && $this->discovery->isValid()
@@ -69,6 +73,7 @@ final class OpenIdAuthenticator extends AbstractAuthenticator
             && ($request->query->has('code') || $request->query->has('error'));
     }
 
+    #[\Override]
     public function authenticate(Request $request): Passport
     {
         if (
@@ -94,11 +99,24 @@ final class OpenIdAuthenticator extends AbstractAuthenticator
         \parse_str((string) $request->query->get('state'), $state);
 
         /*
+         * Validate the CSRF state token to prevent CSRF / open-redirect attacks.
+         * The token was embedded by OAuth2LinkGenerator::generate() under the "token" key.
+         */
+        $stateToken = $state['token'] ?? null;
+        if (
+            !isset($stateToken)
+            || !is_string($stateToken)
+            || !$this->csrfTokenManager->isTokenValid(
+                new CsrfToken(\RZ\Roadiz\OpenId\OAuth2LinkGenerator::OAUTH_STATE_TOKEN, $stateToken)
+            )
+        ) {
+            throw new OpenIdAuthenticationException('OAuth2 state token is invalid or has already been used.');
+        }
+
+        /*
          * Fetch _target_path parameter from OAuth2 state
          */
-        if (
-            isset($state[$this->targetPathParameter])
-        ) {
+        if (isset($state[$this->targetPathParameter])) {
             $request->query->set($this->targetPathParameter, $state[$this->targetPathParameter]);
         }
 
@@ -142,7 +160,7 @@ final class OpenIdAuthenticator extends AbstractAuthenticator
             throw new OpenIdAuthenticationException('JWT is missing from response.');
         }
 
-        if (!\is_string($this->usernameClaim) || empty($this->usernameClaim)) {
+        if ('' === $this->usernameClaim) {
             throw new OpenIdAuthenticationException('Username claim is not a valid string.');
         }
 
@@ -201,14 +219,13 @@ final class OpenIdAuthenticator extends AbstractAuthenticator
             );
         }
         $passport = new Passport(
-            new UserBadge($username, function () use ($jwt, $username) {
+            new UserBadge($username, fn () =>
                 /*
                  * Load user from Identity provider, create a virtual user
                  * with roles configured in config/packages/roadiz_rozier.yaml
                  * and need to validate JWT token.
                  */
-                return $this->loadUser($jwt->claims()->all(), $username, $jwt);
-            }),
+                $this->loadUser($jwt->claims()->all(), $username, $jwt)),
             $customCredentials
         );
         $passport->setAttribute('jwt', $jwt);
@@ -231,7 +248,8 @@ final class OpenIdAuthenticator extends AbstractAuthenticator
         );
     }
 
-    public function onAuthenticationSuccess(Request $request, TokenInterface $token, string $firewallName): ?Response
+    #[\Override]
+    public function onAuthenticationSuccess(Request $request, TokenInterface $token, string $firewallName): Response
     {
         if ($targetPath = $this->getTargetPath($request->getSession(), $firewallName)) {
             return new RedirectResponse($targetPath);
@@ -240,7 +258,8 @@ final class OpenIdAuthenticator extends AbstractAuthenticator
         return new RedirectResponse($this->urlGenerator->generate($this->defaultRoute));
     }
 
-    public function onAuthenticationFailure(Request $request, AuthenticationException $exception): ?Response
+    #[\Override]
+    public function onAuthenticationFailure(Request $request, AuthenticationException $exception): Response
     {
         if ($request->hasSession()) {
             $request->getSession()->set(SecurityRequestAttributes::AUTHENTICATION_ERROR, $exception);
