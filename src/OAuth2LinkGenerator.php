@@ -13,7 +13,7 @@ class OAuth2LinkGenerator
 {
     public const OAUTH_STATE_TOKEN = 'openid_state';
     public const OAUTH_NONCE_SESSION_KEY = 'openid_nonce';
-    private readonly array $openIdScopes;
+    private array $openIdScopes;
 
     public function __construct(
         protected readonly ?Discovery $discovery,
