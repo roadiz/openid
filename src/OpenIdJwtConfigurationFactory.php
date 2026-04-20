@@ -63,7 +63,6 @@ final readonly class OpenIdJwtConfigurationFactory implements JwtConfigurationFa
         return $validators;
     }
 
-    #[\Override]
     public function create(): ?Configuration
     {
         /*

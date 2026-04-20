@@ -64,8 +64,7 @@ final class OpenIdAuthenticator extends AbstractAuthenticator
         ]);
     }
 
-    #[\Override]
-    public function supports(Request $request): bool
+    public function supports(Request $request): ?bool
     {
         return null !== $this->discovery
             && $this->discovery->isValid()
@@ -74,7 +73,6 @@ final class OpenIdAuthenticator extends AbstractAuthenticator
             && ($request->query->has('code') || $request->query->has('error'));
     }
 
-    #[\Override]
     public function authenticate(Request $request): Passport
     {
         if (
@@ -117,7 +115,9 @@ final class OpenIdAuthenticator extends AbstractAuthenticator
         /*
          * Fetch _target_path parameter from OAuth2 state
          */
-        if (isset($state[$this->targetPathParameter])) {
+        if (
+            isset($state[$this->targetPathParameter])
+        ) {
             $request->query->set($this->targetPathParameter, $state[$this->targetPathParameter]);
         }
 
@@ -161,7 +161,7 @@ final class OpenIdAuthenticator extends AbstractAuthenticator
             throw new OpenIdAuthenticationException('JWT is missing from response.');
         }
 
-        if ('' === $this->usernameClaim) {
+        if (!\is_string($this->usernameClaim) || empty($this->usernameClaim)) {
             throw new OpenIdAuthenticationException('Username claim is not a valid string.');
         }
 
@@ -238,13 +238,14 @@ final class OpenIdAuthenticator extends AbstractAuthenticator
             );
         }
         $passport = new Passport(
-            new UserBadge($username, fn () =>
+            new UserBadge($username, function () use ($jwt, $username) {
                 /*
                  * Load user from Identity provider, create a virtual user
                  * with roles configured in config/packages/roadiz_rozier.yaml
                  * and need to validate JWT token.
                  */
-                $this->loadUser($jwt->claims()->all(), $username, $jwt)),
+                return $this->loadUser($jwt->claims()->all(), $username, $jwt);
+            }),
             $customCredentials
         );
         $passport->setAttribute('jwt', $jwt);
@@ -267,8 +268,7 @@ final class OpenIdAuthenticator extends AbstractAuthenticator
         );
     }
 
-    #[\Override]
-    public function onAuthenticationSuccess(Request $request, TokenInterface $token, string $firewallName): Response
+    public function onAuthenticationSuccess(Request $request, TokenInterface $token, string $firewallName): ?Response
     {
         if ($targetPath = $this->getTargetPath($request->getSession(), $firewallName)) {
             return new RedirectResponse($targetPath);
@@ -277,8 +277,7 @@ final class OpenIdAuthenticator extends AbstractAuthenticator
         return new RedirectResponse($this->urlGenerator->generate($this->defaultRoute));
     }
 
-    #[\Override]
-    public function onAuthenticationFailure(Request $request, AuthenticationException $exception): Response
+    public function onAuthenticationFailure(Request $request, AuthenticationException $exception): ?Response
     {
         if ($request->hasSession()) {
             $request->getSession()->set(SecurityRequestAttributes::AUTHENTICATION_ERROR, $exception);
