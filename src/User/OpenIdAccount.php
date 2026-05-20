@@ -120,7 +120,7 @@ class OpenIdAccount implements UserInterface, EquatableInterface
 
     public function getUsername(): string
     {
-        return $this->email;
+        return $this->email ?? '';
     }
 
     #[\Override]
