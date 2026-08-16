@@ -13,7 +13,7 @@ class OAuth2LinkGenerator
 {
     public const OAUTH_STATE_TOKEN = 'openid_state';
     public const OAUTH_NONCE_SESSION_KEY = 'openid_nonce';
-    private array $openIdScopes;
+    private readonly array $openIdScopes;
 
     public function __construct(
         protected readonly ?Discovery $discovery,
@@ -76,7 +76,7 @@ class OAuth2LinkGenerator
                 'token' => $stateToken->getValue(),
             ])),
             'nonce' => $nonce,
-            'login_hint' => $request->get('email', null),
+            'login_hint' => $request->query->get('email'),
             'scope' => implode(' ', $customScopes),
             'client_id' => $this->oauthClientId,
             'redirect_uri' => $redirectUri,
