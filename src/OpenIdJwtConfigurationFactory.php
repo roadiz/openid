@@ -12,40 +12,34 @@ use Lcobucci\JWT\Validation\Constraint;
 use Lcobucci\JWT\Validation\Constraint\IssuedBy;
 use Lcobucci\JWT\Validation\Constraint\LooseValidAt;
 use Lcobucci\JWT\Validation\Constraint\PermittedFor;
-use Lcobucci\JWT\Validation\Constraint\SignedWith;
 use RZ\Roadiz\JWT\JwtConfigurationFactory;
 use RZ\Roadiz\JWT\Validation\Constraint\HostedDomain;
 use RZ\Roadiz\JWT\Validation\Constraint\UserInfoEndpoint;
-use Symfony\Contracts\HttpClient\HttpClientInterface;
 
-final readonly class OpenIdJwtConfigurationFactory implements JwtConfigurationFactory
+final class OpenIdJwtConfigurationFactory implements JwtConfigurationFactory
 {
     public function __construct(
-        private ?Discovery $discovery,
-        private HttpClientInterface $client,
-        private ?string $openIdHostedDomain,
-        private ?string $oauthClientId,
-        private bool $verifyUserInfo,
-        private int $clockSkew = 0,
+        private readonly ?Discovery $discovery,
+        private readonly ?string $openIdHostedDomain,
+        private readonly ?string $oauthClientId,
+        private readonly bool $verifyUserInfo,
+        private readonly int $clockSkew = 0
     ) {
     }
 
     /**
-     * @param non-empty-string $pem
-     *
      * @return Constraint[]
      */
-    private function getValidationConstraints(string $pem): array
+    protected function getValidationConstraints(): array
     {
         $validators = [
-            new SignedWith(new Sha256(), InMemory::plainText($pem)),
             new LooseValidAt(
                 SystemClock::fromSystemTimezone(),
-                $this->clockSkew > 0 ? new \DateInterval('PT'.$this->clockSkew.'S') : null
+                $this->clockSkew > 0 ? new \DateInterval('PT' . $this->clockSkew . 'S') : null
             ),
         ];
 
-        if (\is_string($this->oauthClientId) && !empty(trim($this->oauthClientId))) {
+        if (!empty($this->oauthClientId)) {
             $validators[] = new PermittedFor(trim($this->oauthClientId));
         }
 
@@ -60,47 +54,42 @@ final readonly class OpenIdJwtConfigurationFactory implements JwtConfigurationFa
                 $validators[] = new IssuedBy($issuer);
             }
             if ($this->verifyUserInfo && is_string($userinfoEndpoint) && !empty($userinfoEndpoint)) {
-                $validators[] = new UserInfoEndpoint(trim($userinfoEndpoint), $this->client);
+                $validators[] = new UserInfoEndpoint(trim($userinfoEndpoint));
             }
         }
 
         return $validators;
     }
 
-    #[\Override]
-    public function create(?string $kid = null): ?Configuration
+    public function create(): Configuration
     {
+        $configuration = Configuration::forUnsecuredSigner();
         /*
          * Verify JWT signature if asymmetric crypto is used and if PHP gmp extension is loaded.
          */
         if (
-            null !== $this->discovery
-            && $this->discovery->canVerifySignature()
-            && null !== $pems = $this->discovery->getPems()
+            null !== $this->discovery &&
+            $this->discovery->canVerifySignature() &&
+            null !== $pems = $this->discovery->getPems()
         ) {
             /** @var array $signingAlgValuesSupported */
             $signingAlgValuesSupported = $this->discovery->get('id_token_signing_alg_values_supported', []);
-            // Match the token's "kid" header to its JWKS key so verification survives key rotation / multi-key JWKS.
-            // Falls back to the first available key when no kid is known yet (e.g. before the token is parsed).
-            $pem = (null !== $kid && isset($pems[$kid])) ? $pems[$kid] : reset($pems);
             if (
                 in_array(
                     'RS256',
                     $signingAlgValuesSupported
-                )
-                && !empty($pem)
+                ) &&
+                !empty($pems[0])
             ) {
                 $configuration = Configuration::forAsymmetricSigner(
                     new Sha256(),
-                    InMemory::plainText($pem),
-                    InMemory::plainText($pem)
+                    InMemory::plainText($pems[0]),
+                    InMemory::plainText($pems[0])
                 );
-                $configuration->setValidationConstraints(...$this->getValidationConstraints($pem));
-
-                return $configuration;
             }
         }
 
-        return null;
+        $configuration->setValidationConstraints(...$this->getValidationConstraints());
+        return $configuration;
     }
 }
