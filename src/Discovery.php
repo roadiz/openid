@@ -40,7 +40,6 @@ class Discovery extends LazyParameterBag
         return !empty($this->discoveryUri) && filter_var($this->discoveryUri, FILTER_VALIDATE_URL);
     }
 
-    #[\Override]
     protected function populateParameters(): void
     {
         $cacheItem = $this->cacheAdapter->getItem(static::CACHE_KEY);
@@ -57,7 +56,11 @@ class Discovery extends LazyParameterBag
                 $parameters = \json_decode(json: $response->getContent(), associative: true, flags: JSON_THROW_ON_ERROR);
                 $cacheItem->set($parameters);
                 $this->cacheAdapter->save($cacheItem);
-            } catch (ExceptionInterface|\JsonException $exception) {
+            } catch (ExceptionInterface $exception) {
+                $this->logger->warning('Cannot fetch OpenID discovery parameters: '.$exception->getMessage());
+
+                return;
+            } catch (\JsonException $exception) {
                 $this->logger->warning('Cannot fetch OpenID discovery parameters: '.$exception->getMessage());
 
                 return;
@@ -77,11 +80,12 @@ class Discovery extends LazyParameterBag
     }
 
     /**
-     * @return array<string, string>|null Map of key ID ("kid", or the key's index when absent) to PEM-encoded public key,
-     *                                    or null if the JWKS is malformed and cannot be converted
+     * @return array<string>|null
      *
+     * @throws Base64DecodeException
      * @throws ClientExceptionInterface
      * @throws InvalidArgumentException
+     * @throws JWKConverterException
      * @throws RedirectionExceptionInterface
      * @throws ServerExceptionInterface
      * @throws TransportExceptionInterface
@@ -92,27 +96,13 @@ class Discovery extends LazyParameterBag
     public function getPems(): ?array
     {
         $jwksData = $this->getJwksData();
-        if (null === $jwksData || !isset($jwksData['keys'])) {
-            return null;
+        if (null !== $jwksData && isset($jwksData['keys'])) {
+            $converter = new JWKConverter();
+
+            return $converter->multipleToPEM($jwksData['keys']);
         }
 
-        $converter = new JWKConverter();
-        $pems = [];
-        try {
-            foreach ($jwksData['keys'] as $index => $jwk) {
-                if (!is_array($jwk)) {
-                    throw new JWKConverterException(sprintf('JWK at index "%s" is not a valid array.', $index));
-                }
-                $kid = (isset($jwk['kid']) && is_string($jwk['kid'])) ? $jwk['kid'] : (string) $index;
-                $pems[$kid] = $converter->toPEM($jwk);
-            }
-        } catch (JWKConverterException|Base64DecodeException $exception) {
-            $this->logger->warning('Cannot convert JWKS keys to PEM: '.$exception->getMessage());
-
-            return null;
-        }
-
-        return $pems;
+        return null;
     }
 
     /**
