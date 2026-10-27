@@ -12,7 +12,6 @@ use Lcobucci\JWT\Validation\Constraint;
 use Lcobucci\JWT\Validation\Constraint\IssuedBy;
 use Lcobucci\JWT\Validation\Constraint\LooseValidAt;
 use Lcobucci\JWT\Validation\Constraint\PermittedFor;
-use Lcobucci\JWT\Validation\Constraint\SignedWith;
 use RZ\Roadiz\JWT\JwtConfigurationFactory;
 use RZ\Roadiz\JWT\Validation\Constraint\HostedDomain;
 use RZ\Roadiz\JWT\Validation\Constraint\UserInfoEndpoint;
@@ -31,14 +30,11 @@ final readonly class OpenIdJwtConfigurationFactory implements JwtConfigurationFa
     }
 
     /**
-     * @param non-empty-string $pem
-     *
      * @return Constraint[]
      */
-    private function getValidationConstraints(string $pem): array
+    private function getValidationConstraints(): array
     {
         $validators = [
-            new SignedWith(new Sha256(), InMemory::plainText($pem)),
             new LooseValidAt(
                 SystemClock::fromSystemTimezone(),
                 $this->clockSkew > 0 ? new \DateInterval('PT'.$this->clockSkew.'S') : null
@@ -67,8 +63,7 @@ final readonly class OpenIdJwtConfigurationFactory implements JwtConfigurationFa
         return $validators;
     }
 
-    #[\Override]
-    public function create(?string $kid = null): ?Configuration
+    public function create(): ?Configuration
     {
         /*
          * Verify JWT signature if asymmetric crypto is used and if PHP gmp extension is loaded.
@@ -80,22 +75,19 @@ final readonly class OpenIdJwtConfigurationFactory implements JwtConfigurationFa
         ) {
             /** @var array $signingAlgValuesSupported */
             $signingAlgValuesSupported = $this->discovery->get('id_token_signing_alg_values_supported', []);
-            // Match the token's "kid" header to its JWKS key so verification survives key rotation / multi-key JWKS.
-            // Falls back to the first available key when no kid is known yet (e.g. before the token is parsed).
-            $pem = (null !== $kid && isset($pems[$kid])) ? $pems[$kid] : reset($pems);
             if (
                 in_array(
                     'RS256',
                     $signingAlgValuesSupported
                 )
-                && !empty($pem)
+                && !empty($pems[0])
             ) {
                 $configuration = Configuration::forAsymmetricSigner(
                     new Sha256(),
-                    InMemory::plainText($pem),
-                    InMemory::plainText($pem)
+                    InMemory::plainText($pems[0]),
+                    InMemory::plainText($pems[0])
                 );
-                $configuration->setValidationConstraints(...$this->getValidationConstraints($pem));
+                $configuration->setValidationConstraints(...$this->getValidationConstraints());
 
                 return $configuration;
             }
